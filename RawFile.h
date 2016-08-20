@@ -1,13 +1,10 @@
 #ifndef MYCLIPMAP_RAWFILE_H
 #define MYCLIPMAP_RAWFILE_H
 
-#include <cstdio>
-#include <cstdlib>
-#include <string>
-#include <iostream>
+#include "global.h"
 using namespace std;
 
-const int SIZE = 513;
+const int DATASIZE = 513;
 
 class RawFile {
 private:
@@ -15,7 +12,7 @@ private:
 public:
     RawFile();
     virtual ~RawFile();
-    void loadRawFile(const string path);
+    void loadRawFile(const char* path);
     unsigned char getHeight(int x, int z);
 };
 

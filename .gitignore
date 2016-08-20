@@ -29,3 +29,10 @@
 *.app
 
 CMakeLists.txt
+.vs/
+*.sln
+*.db
+*.opendb
+*.vcxproj
+*.filters
+Debug/
