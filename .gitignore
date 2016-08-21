@@ -36,3 +36,4 @@ CMakeLists.txt
 *.vcxproj
 *.filters
 Debug/
+.idea/

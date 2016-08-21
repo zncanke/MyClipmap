@@ -7,13 +7,17 @@ const int WIDTH = 1024, HEIGHT = 512;
 
 RawFile rawFile;
 
+struct Point {
+    float x, y;
+} cursor;
+
 GLuint vbo;
-GLfloat vertices[] = { -0.5f, -0.2f, -0.5f,
-						-0.5f, -0.2f, 0.5f,
-						0.5f, -0.2f, 0.5f,
-						0.5f, -0.2f, -0.5f,
-						-0.5f, -0.2f, -0.5f,
-						0.5f, -0.2f, 0.5f };
+GLfloat vertices[] = { -0.5f, 0.0f, -0.5f,
+						-0.5f, 0.0f, 0.5f,
+						0.5f, 0.0f, 0.5f,
+						0.5f, 0.0f, -0.5f,
+						-0.5f, 0.0f, -0.5f,
+						0.5f, 0.0f, 0.5f };
 //GLfloat vertices[] = { -0.5f, -0.5f,0.0f,
 //						-0.5f, 0.5f,0.0f,
 //						0.5f,  0.5f,0.0f,
@@ -24,6 +28,7 @@ Shader shader;
 
 void init();
 void drawFrame();
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 int main() {
     glfwInit();
@@ -37,6 +42,7 @@ int main() {
     }
 
     glfwMakeContextCurrent(window);
+    glfwSetCursorPosCallback(window, mouse_callback);
 
     glewExperimental = (GLboolean)true;
     if (glewInit() != GLEW_OK) {
@@ -62,19 +68,18 @@ int main() {
 }
 
 void init() {
-    rawFile.loadRawFile("data.raw");
+    rawFile.loadRawFile("/Users/willl/MyClipmap/data.raw");
     //for (int i = 0; i < SIZE; i++)
     //    for (int j = 0; j < SIZE; j++)
     //        printf("(%d, %d):%d\n", i, j, rawFile.getHeight(i, j));
 
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GL_FLOAT), (GLvoid*)0);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	shader.attach(GL_VERTEX_SHADER, "vertex.txt");
-	shader.attach(GL_FRAGMENT_SHADER, "fragment.txt");
+	shader.attach(GL_VERTEX_SHADER, "/Users/willl/MyClipmap/vertex.txt");
+	shader.attach(GL_FRAGMENT_SHADER, "/Users/willl/MyClipmap/fragment.txt");
 	shader.link();
 }
 
@@ -85,10 +90,12 @@ void drawFrame() {
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
+//    glDepthFunc(GL_LESS);
 
-	static int viewPos[] = { 0, 0.2, 0 };
-	static float viewAngle = 0.0f;
+	static int viewPos[] = { 0, 1, 0 };
+	static float viewAngle;
+    viewAngle = cursor.x / (float)4.0;
+//    printf("%.2f\n", viewAngle);
 	
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -97,14 +104,21 @@ void drawFrame() {
 	glLoadIdentity();
 	gluPerspective(90.0f, (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.0001f, 1.0f);
 
-	glTranslatef(0, -viewPos[1], 0);
-	//glRotatef(viewAngle, 0, 1, 0);
+	glTranslatef(0, 0.5, 0);
+	glRotatef(viewAngle, 0, 0, 1);
 
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glVertexPointer(3, GL_FLOAT, 0, (GLvoid*)0);
 	shader.begin();
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glEnableVertexAttribArray(0);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glDisableVertexAttribArray(0);
 	shader.end();
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+//    printf("enterMouseCallback: %.2lf %.2lf\n", xpos, ypos);
+    cursor.x = (float)xpos;
+    cursor.y = (float)ypos;
 }
