@@ -4,26 +4,27 @@
 using namespace std;
 
 const int WIDTH = 1024, HEIGHT = 512;
+const int TSIZE = 8;
 
 RawFile rawFile;
 
 struct Point {
     float x, y;
-} cursor;
+};
+
+Point cursor;
 
 GLuint vbo;
-GLfloat vertices[] = { -0.5f, 0.0f, -0.5f,
-						-0.5f, 0.0f, 0.5f,
-						0.5f, 0.0f, 0.5f,
-						0.5f, 0.0f, -0.5f,
-						-0.5f, 0.0f, -0.5f,
-						0.5f, 0.0f, 0.5f };
-//GLfloat vertices[] = { -0.5f, -0.5f,0.0f,
-//						-0.5f, 0.5f,0.0f,
-//						0.5f,  0.5f,0.0f,
-//						0.5f,  -0.5f,0.0f,
-//						-0.5f, -0.5f,0.0f,
-//						0.5f, 0.5f, 0.0f  };
+
+GLfloat vertices[] = {
+        -0.5f,  0.0f, -0.5f,  //0.0f, 1.0f,
+        0.5f,  0.0f, -0.5f,  //1.0f, 1.0f,
+        0.5f,  0.0f,  0.5f,  //1.0f, 0.0f,
+        0.5f,  0.0f,  0.5f,  //1.0f, 0.0f,
+        -0.5f,  0.0f,  0.5f,  //0.0f, 0.0f,
+        -0.5f,  0.0f, -0.5f,  //0.0f, 1.0f
+};
+
 Shader shader;
 
 void init();
@@ -85,10 +86,10 @@ void init() {
 
 void drawFrame() {
     glClearDepth(1.0f);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
+//    glEnable(GL_CULL_FACE);
+//    glCullFace(GL_FRONT);
     glEnable(GL_DEPTH_TEST);
 //    glDepthFunc(GL_LESS);
 
@@ -96,16 +97,16 @@ void drawFrame() {
 	static float viewAngle;
     viewAngle = cursor.x / (float)4.0;
 //    printf("%.2f\n", viewAngle);
-	
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(90.0f, (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.0001f, 1.0f);
+    gluPerspective(90.0f, (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.01f, 100.0f);
 
-	glTranslatef(0, 0.5, 0);
-	glRotatef(viewAngle, 0, 0, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    glRotatef(viewAngle, 0, 1, 0);
+    glTranslatef(0, -0.2f, 0);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glEnableClientState(GL_VERTEX_ARRAY);
