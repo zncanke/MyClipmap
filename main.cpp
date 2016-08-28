@@ -153,6 +153,11 @@ void drawFrame() {
 }
 
 bool frustumCull() {
+    mat4 mat0, mat1;
+    glGetFloatv(GL_PROJECTION_MATRIX, &mat0[0][0]);
+    glGetFloatv(GL_MODELVIEW_MATRIX, &mat1[0][0]);
+    mat0 = mat0 * mat1;
+
     return false;
 }
 
