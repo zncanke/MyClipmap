@@ -4,6 +4,18 @@
 using namespace std;
 using namespace glm;
 
+#ifdef WIN32
+#define vertexShaderPath "vertex.txt"
+#define fragmentShaderPath "fragment.txt"
+#define rawFilePath "data.raw"
+#define mypointsPath "mypoints.txt"
+#else
+#define vertexShaderPath "/Users/willl/MyClipmap/vertex.txt"
+#define fragmentShaderPath "/Users/willl/MyClipmap/fragment.txt"
+#define rawFilePath "/Users/willl/MyClipmap/data.raw"
+#define mypointsPath "/Users/willl/MyClipmap/mypoints.txt"
+#endif
+
 const int WIDTH = 1024, HEIGHT = 512;
 const int GRID = 8;
 const int LEVEL = 3;
@@ -76,7 +88,7 @@ int main() {
 }
 
 void init() {
-    rawFile.loadRawFile("/Users/willl/MyClipmap/data.raw");
+    rawFile.loadRawFile(rawFilePath);
     //for (int i = 0; i < SIZE; i++)
     //    for (int j = 0; j < SIZE; j++)
     //        printf("(%d, %d):%d\n", i, j, rawFile.getHeight(i, j));
@@ -88,13 +100,13 @@ void init() {
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), &vertices[0], GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	shader.attach(GL_VERTEX_SHADER, "/Users/willl/MyClipmap/vertex.txt");
-	shader.attach(GL_FRAGMENT_SHADER, "/Users/willl/MyClipmap/fragment.txt");
+	shader.attach(GL_VERTEX_SHADER, vertexShaderPath);
+	shader.attach(GL_FRAGMENT_SHADER, fragmentShaderPath);
 	shader.link();
 }
 
 void buildGrid() {
-//    freopen("/Users/willl/MyClipmap/mypoints.txt", "w", stdout);
+    //freopen(mypointsPath, "w", stdout);
     vertices.clear();
     for (int j = 0; j < GRID+1; j++)
         for (int i = 0; i < GRID+2; i++) {
