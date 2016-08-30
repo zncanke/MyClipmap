@@ -5,6 +5,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <tiff.h>
+#include <geotiff.h>
+#include <tiffio.h>
+#include <geotiffio.h>
 
 #include <vector>
 #include <string>

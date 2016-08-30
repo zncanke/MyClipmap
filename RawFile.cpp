@@ -7,7 +7,7 @@ void RawFile::loadRawFile(const char* path) {
         perror("Cannot open raw file.\n");
         exit(1);
     }
-    fread(heightMap, 1, DATASIZE * DATASIZE, fp);
+    fread(rawData, 1, DATASIZE * DATASIZE, fp);
     int result = ferror(fp);
     if (result) {
         perror("Load file failed.\n");
@@ -16,24 +16,50 @@ void RawFile::loadRawFile(const char* path) {
     fclose(fp);
 }
 
-unsigned char RawFile::getHeight(int x, int z) {
+unsigned char RawFile::getRaw(int x, int z) {
     int tx = x % (DATASIZE + 1);
     int tz = z % (DATASIZE + 1);
-    if (!heightMap)
+    if (!rawData)
         return 0;
-    return heightMap[tx * DATASIZE + tz];
+    return rawData[tx * DATASIZE + tz];
 }
 
-RawFile::RawFile() {
-    heightMap = nullptr;
-    heightMap = (unsigned char*)malloc(DATASIZE * DATASIZE);
-    if (!heightMap) {
+RawFile::RawFile() : flag(false) {
+    rawData = nullptr;
+    rawData = (unsigned char*)malloc(DATASIZE * DATASIZE);
+    if (!rawData) {
         perror("Constructor failed.\n");
         exit(1);
     }
 }
 
 RawFile::~RawFile() {
-    free(heightMap);
+    if (rawData)
+        free(rawData);
+    if (heightMap)
+        free(heightMap);
 }
+
+void RawFile::generateHeightMap() {
+    if (flag) return;
+    flag = true;
+    heightMap = nullptr;
+    heightMap = (float*)malloc(DATASIZE * DATASIZE * sizeof(float));
+    if (!heightMap) {
+        perror("heightMap malloc failed.\n");
+        exit(1);
+    }
+    for (int i = 0; i < DATASIZE * DATASIZE; i++) {
+        heightMap[i] = (float)rawData[i] / 200.0f;
+    }
+}
+
+float* RawFile::getHeightMap() {
+    return heightMap;
+}
+
+unsigned char *RawFile::getRaw() {
+    return rawData;
+}
+
 

@@ -18,6 +18,7 @@ void Shader::attach(int type, const GLchar* filename) {
 	}
 	catch (ifstream::failure e) {
 		cerr << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << endl;
+		exit(1);
 	}
 
 	const GLchar* code = tcode.c_str();
@@ -33,6 +34,7 @@ void Shader::attach(int type, const GLchar* filename) {
 	if (!success) {
 		glGetShaderInfoLog(handle, 512, NULL, infoLog);
 		cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << endl;
+		exit(1);
 	}
 	handles.push_back(handle);
 }
@@ -49,6 +51,7 @@ void Shader::link() {
 	if (!success) {
 		glGetProgramInfoLog(this->Program, 512, NULL, infoLog);
 		cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << endl;
+		exit(1);
 	}
 }
 

@@ -42,6 +42,7 @@ GLfloat tColor[][4] = {
 vector<GLfloat> vertices;
 
 Shader shader;
+GLuint texHeightMap;
 
 void init();
 void drawFrame();
@@ -49,6 +50,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void drawGrid();
 void buildGrid();
 void setUniform4f(const char* name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
+void setUniformi(const char* name, GLint val);
 
 int main() {
     glfwInit();
@@ -89,9 +91,24 @@ int main() {
 
 void init() {
     rawFile.loadRawFile(rawFilePath);
-    //for (int i = 0; i < SIZE; i++)
-    //    for (int j = 0; j < SIZE; j++)
-    //        printf("(%d, %d):%d\n", i, j, rawFile.getHeight(i, j));
+//    freopen(mypointsPath, "w", stdout);
+//    for (int i = 0; i < DATASIZE; i++)
+//        for (int j = 0; j < DATASIZE; j++)
+//            printf("(%d, %d):%d\n", i, j, rawFile.getRaw(i, j));
+
+    rawFile.generateHeightMap();
+
+    glGenTextures(1, &texHeightMap);
+    glBindTexture(GL_TEXTURE_2D, texHeightMap);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, DATASIZE, DATASIZE, 0, GL_LUMINANCE, GL_FLOAT, rawFile.getHeightMap());
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
 
     buildGrid();
 
@@ -154,14 +171,21 @@ void drawFrame() {
     glRotatef(viewAngle, 0, 1, 0);
     glTranslatef(0, -viewPos[1], 0);
 
+    glEnable(GL_TEXTURE_2D);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texHeightMap);
+
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glEnableClientState(GL_VERTEX_ARRAY);
     glVertexPointer(3, GL_FLOAT, 0, (GLvoid*)0);
 	shader.begin();
+    setUniformi("texHeightMap", 0);
 	drawGrid();
 	shader.end();
     glDisableClientState(GL_VERTEX_ARRAY);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+
 }
 
 bool frustumCull() {
@@ -204,4 +228,12 @@ void setUniform4f(const char* name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat 
         printf("Variable %s in shader not found\n", name);
     }
     glUniform4f(loc, v0, v1, v2, v3);
+}
+
+void setUniformi(const char* name, GLint val) {
+    GLint loc = glGetUniformLocation(shader.Program, name);
+    if (loc == -1) {
+        cerr << "Variable " << name << " in shader not found" << endl;
+    }
+    glUniform1i(loc, val);
 }

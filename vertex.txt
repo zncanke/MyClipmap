@@ -1,7 +1,13 @@
+uniform sampler2D texHeightMap;
+
 uniform vec4 scale;
 uniform vec4 offset;
 
 void main(void) {
 	vec4 pos = scale * (offset + vec4(gl_Vertex.xyz, 1.0));
+	vec3 tpos = pos.xyz;
+    tpos = tpos / 2.0;
+    tpos = tpos + 0.5;
+	pos.y = texture2D(texHeightMap, tpos.xz).x * -0.05;
 	gl_Position = gl_ModelViewProjectionMatrix * pos;
 }
