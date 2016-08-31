@@ -1,26 +1,16 @@
 #include "global.h"
 #include "RawFile.h"
 #include "shader.h"
+#include "GeotiffFile.h"
 using namespace std;
 using namespace glm;
 
-#ifdef WIN32
-#define vertexShaderPath "vertex.txt"
-#define fragmentShaderPath "fragment.txt"
-#define rawFilePath "data.raw"
-#define mypointsPath "mypoints.txt"
-#else
-#define vertexShaderPath "/Users/willl/MyClipmap/vertex.txt"
-#define fragmentShaderPath "/Users/willl/MyClipmap/fragment.txt"
-#define rawFilePath "/Users/willl/MyClipmap/data.raw"
-#define mypointsPath "/Users/willl/MyClipmap/mypoints.txt"
-#endif
-
 const int WIDTH = 1024, HEIGHT = 512;
-const int GRID = 8;
+const int GRID = 32;
 const int LEVEL = 3;
 
 RawFile rawFile;
+GeotiffFile geotiffFile;
 
 struct Point {
     float x, y;
@@ -52,6 +42,32 @@ void buildGrid();
 void setUniform4f(const char* name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
 void setUniformi(const char* name, GLint val);
 
+void testProc() {
+    mat4 mat0, mat1;
+    glGetFloatv(GL_PROJECTION_MATRIX, &mat0[0][0]);
+    glGetFloatv(GL_MODELVIEW_MATRIX, &mat1[0][0]);
+    mat0 = mat0 * mat1;
+
+    freopen(testOutput, "w", stdout);
+    for (int i = 0; i < vertices.size(); i += 3) {
+        vec4 pos(vertices[i], vertices[i+1], vertices[i+2], 1.0);
+        vec4 offset(-1, -1, -1, 0);
+        pos += offset;
+        vec3 tpos(pos.x, pos.y, pos.z);
+        tpos /= 2;
+        tpos += 0.5;
+        int x = (int)(tpos.x * 3601);
+        int z = (int)(tpos.z * 3601);
+        pos.y = geotiffFile.getHeightMap()[x * geotiffFile.getWidth() + z];
+        if (pos.y != 0) {
+            printf("not zero\n");
+        }
+        pos = mat0 * pos;
+        printf("%d %d : %.2f\n", x, z, pos.y / pos.w);
+    }
+    freopen("CON", "w", stdout);
+}
+
 int main() {
     glfwInit();
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
@@ -78,6 +94,8 @@ int main() {
 
     init();
 
+//    testProc();
+
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         drawFrame();
@@ -90,13 +108,15 @@ int main() {
 }
 
 void init() {
-    rawFile.loadRawFile(rawFilePath);
+//    rawFile.loadRawFile(rawFilePath);
 //    freopen(mypointsPath, "w", stdout);
 //    for (int i = 0; i < DATASIZE; i++)
 //        for (int j = 0; j < DATASIZE; j++)
 //            printf("(%d, %d):%d\n", i, j, rawFile.getRaw(i, j));
 
-    rawFile.generateHeightMap();
+//    rawFile.generateHeightMap();
+
+    geotiffFile.loadTiffFile(tiffFilePath);
 
     glGenTextures(1, &texHeightMap);
     glBindTexture(GL_TEXTURE_2D, texHeightMap);
@@ -106,7 +126,8 @@ void init() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, DATASIZE, DATASIZE, 0, GL_LUMINANCE, GL_FLOAT, rawFile.getHeightMap());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, geotiffFile.getWidth(), geotiffFile.getHeight(),
+                 0, GL_LUMINANCE, GL_FLOAT, geotiffFile.getHeightMap());
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -114,7 +135,7 @@ void init() {
 
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), &vertices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), &vertices[0], GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	shader.attach(GL_VERTEX_SHADER, vertexShaderPath);
@@ -184,8 +205,6 @@ void drawFrame() {
 	shader.end();
     glDisableClientState(GL_VERTEX_ARRAY);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-
 }
 
 bool frustumCull() {
@@ -193,7 +212,6 @@ bool frustumCull() {
     glGetFloatv(GL_PROJECTION_MATRIX, &mat0[0][0]);
     glGetFloatv(GL_MODELVIEW_MATRIX, &mat1[0][0]);
     mat0 = mat0 * mat1;
-
     return false;
 }
 
