@@ -6,7 +6,7 @@ using namespace std;
 using namespace glm;
 
 const int WIDTH = 1024, HEIGHT = 512;
-const int GRID = 32;
+const int GRID = 128;
 const int LEVEL = 3;
 
 RawFile rawFile;
@@ -17,6 +17,7 @@ struct Point {
 };
 
 Point cursor;
+Point currentPos;
 
 GLuint vbo;
 
@@ -26,7 +27,8 @@ GLfloat tColor[][4] = {
         0, 0, 1, 1, //dark blue
         1, 0, 1, 1, //purple
         1, 1, 0, 1, //yellow
-        0, 1, 1, 1 //light blue
+        0, 1, 1, 1, //light blue
+		0.72f, 0.72f, 0.72f, 1 // grey
 };
 
 vector<GLfloat> vertices;
@@ -37,6 +39,7 @@ GLuint texHeightMap;
 void init();
 void drawFrame();
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void key_callback(GLFWwindow *windows, int key, int scancode, int action, int mode);
 void drawGrid();
 void buildGrid();
 void setUniform4f(const char* name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
@@ -44,25 +47,27 @@ void setUniformi(const char* name, GLint val);
 
 void testProc() {
     mat4 mat0, mat1;
-    glGetFloatv(GL_PROJECTION_MATRIX, &mat0[0][0]);
-    glGetFloatv(GL_MODELVIEW_MATRIX, &mat1[0][0]);
-    mat0 = mat0 * mat1;
+	mat0 = translate(mat0, vec3(0, -0.3f, 0));
+	//vec4 tv(1, 1, 1, 1);
+	//tv = mat0 * tv;
+	mat1 = perspective(90.0f, 2.0f, 0.01f, 100.0f);
+	mat0 = mat1 * mat0;
 
     freopen(testOutput, "w", stdout);
     for (int i = 0; i < vertices.size(); i += 3) {
         vec4 pos(vertices[i], vertices[i+1], vertices[i+2], 1.0);
-        vec4 offset(-1, -1, -1, 0);
+        vec4 offset(-1, 0, -1, 0);
         pos += offset;
         vec3 tpos(pos.x, pos.y, pos.z);
         tpos /= 2;
         tpos += 0.5;
         int x = (int)(tpos.x * 3601);
         int z = (int)(tpos.z * 3601);
-        pos.y = geotiffFile.getHeightMap()[x * geotiffFile.getWidth() + z];
-        if (pos.y != 0) {
-            printf("not zero\n");
-        }
-        pos = mat0 * pos;
+		if (x == 0 && z == 1800) {
+			x = x;
+		}
+		pos = mat0 * pos;
+		pos.y = geotiffFile.getHeightMap()[x * geotiffFile.getWidth() + z];
         printf("%d %d : %.2f\n", x, z, pos.y / pos.w);
     }
     freopen("CON", "w", stdout);
@@ -81,6 +86,7 @@ int main() {
 
     glfwMakeContextCurrent(window);
     glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetKeyCallback(window, key_callback);
 
     glewExperimental = (GLboolean)true;
     if (glewInit() != GLEW_OK) {
@@ -94,7 +100,7 @@ int main() {
 
     init();
 
-//    testProc();
+    //testProc();
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
@@ -117,6 +123,9 @@ void init() {
 //    rawFile.generateHeightMap();
 
     geotiffFile.loadTiffFile(tiffFilePath);
+
+	currentPos.x = geotiffFile.getHeight() / 2;
+	currentPos.y = geotiffFile.getWidth() / 2;
 
     glGenTextures(1, &texHeightMap);
     glBindTexture(GL_TEXTURE_2D, texHeightMap);
@@ -177,7 +186,7 @@ void drawFrame() {
     glEnable(GL_DEPTH_TEST);
 //    glDepthFunc(GL_LESS);
 
-	static float viewPos[] = { 0, 0.3f, 0 };
+	static float viewPos[] = { 0, 0.5f, 0 };
 	static float viewAngle;
     viewAngle = cursor.x / (float)4.0;
 //    printf("%.2f\n", viewAngle);
@@ -189,6 +198,7 @@ void drawFrame() {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
+	glRotatef(30.0f, 1, 0, 0);
     glRotatef(viewAngle, 0, 1, 0);
     glTranslatef(0, -viewPos[1], 0);
 
@@ -200,38 +210,82 @@ void drawFrame() {
     glEnableClientState(GL_VERTEX_ARRAY);
     glVertexPointer(3, GL_FLOAT, 0, (GLvoid*)0);
 	shader.begin();
-    setUniformi("texHeightMap", 0);
 	drawGrid();
 	shader.end();
     glDisableClientState(GL_VERTEX_ARRAY);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-bool frustumCull() {
+bool frustumCull(vec4 scale, vec4 offset) {
     mat4 mat0, mat1;
     glGetFloatv(GL_PROJECTION_MATRIX, &mat0[0][0]);
     glGetFloatv(GL_MODELVIEW_MATRIX, &mat1[0][0]);
     mat0 = mat0 * mat1;
-    return false;
+	int xs, xb, ys, yb, zs, zb;
+	xs = xb = ys = yb = zs = zb = 0;
+	for (int i = 0; i <= 1; i++)
+		for (int j = 0; j <= 1; j++) 
+			for (int k = 0; k <= 1; k++) {
+				vec4 pos = scale * (offset + vec4(i, geotiffFile.getMaxheight() * k, j, 1));
+				pos = mat0 * pos;
+				xs = (pos.x < -pos.w) ? xs + 1 : xs;
+				xb = (pos.x > pos.w) ? xb + 1 : xb;
+				ys = (pos.y < -pos.w) ? ys + 1 : ys;
+				yb = (pos.y > pos.w) ? yb + 1 : yb;
+				zs = (pos.z < -pos.w) ? zs + 1 : zs;
+				zb = (pos.z > pos.w) ? zb + 1 : zb;
+			}
+	return xs == 8 || xb == 8 || ys == 8 || yb == 8 || zs == 8 || zb == 8;
 }
 
 void drawGrid() {
-    float scale = 1;
+	setUniformi("texHeightMap", 0);
+	setUniform4f("currentPos", currentPos.x / geotiffFile.getHeight(), 0, currentPos.y / geotiffFile.getWidth(), 0);
+	setUniform4f("tColor", tColor[6][0], tColor[6][1], tColor[6][2], 1);
+    float ratio = 1;
     for (int l = 0; l < LEVEL; l++) {
-        setUniform4f("scale", scale, 1, scale, 1);
-        setUniform4f("tColor", tColor[l][0], tColor[l][1], tColor[l][2], tColor[l][3]);
+		vec4 scale(ratio, 1, ratio, 1);
+        setUniform4f("scale", scale.x, 1, scale.z, 1);
+        //setUniform4f("tColor", tColor[l][0], tColor[l][1], tColor[l][2], tColor[l][3]);
+		int c = 0;
         for (int i = -2; i < 2; i++)
             for (int j = -2; j < 2; j++) {
                 if (l != LEVEL - 1 && i != -2 && i != 1 && j != -2 && j != 1)
                     continue;
-                vec3 offset(i, 0, j);
+                vec4 offset(i, 0, j, 0);
                 setUniform4f("offset", offset.x, offset.y, offset.z, 0);
-                if (frustumCull())
-                    continue;
+				if (frustumCull(scale, offset)) {
+					c++;
+					continue;
+				}
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, vertices.size());
             }
+		printf("%d\n", c);
         scale *= 0.5;
     }
+}
+
+const float delta = 10.0f;
+
+void key_callback(GLFWwindow *windows, int key, int scancode, int action, int mode) {
+	if (key == GLFW_KEY_W && action == GLFW_PRESS) {
+		currentPos.x = (currentPos.x + delta >= geotiffFile.getHeight()) ?
+			geotiffFile.getHeight() - 1 : currentPos.x + delta;
+	}
+	if (key == GLFW_KEY_S && action == GLFW_PRESS) {
+		currentPos.x = (currentPos.x - delta < 0) ?
+			0 : currentPos.x - delta;
+	}
+	if (key == GLFW_KEY_D && action == GLFW_PRESS) {
+		currentPos.y = (currentPos.y + delta >= geotiffFile.getWidth()) ?
+			geotiffFile.getWidth() - 1 : currentPos.y + delta;
+	}
+	if (key == GLFW_KEY_A && action == GLFW_PRESS) {
+		currentPos.y = (currentPos.y - delta < 0) ?
+			0 : currentPos.y - delta;
+	}
+	if (action == GLFW_PRESS)
+		printf("Current Position: %.0f %.0f\n", currentPos.x, currentPos.y);
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {

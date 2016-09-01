@@ -15,10 +15,12 @@ private:
     int tot;
     int width, height;
     float* heightMap;
+	float maxheight;
 public:
     float *getHeightMap() const;
     int getHeight() const;
     int getWidth() const;
+	float getMaxheight() const;
     GeotiffFile();
     virtual ~GeotiffFile();
     void loadTiffFile(const char* filePath);
