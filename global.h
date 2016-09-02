@@ -10,6 +10,7 @@
 #include <tiffio.h>
 #include <geotiffio.h>
 #include <xtiffio.h>
+#include <SOIL/SOIL.h>
 
 #include <vector>
 #include <string>
@@ -27,6 +28,7 @@
 #define mypointsPath "mypoints.txt"
 #define tiffFilePath "ASTGTM2_N00E006_dem.tif"
 #define testOutput "testOutput.txt"
+#define currentPath ""
 #else
 #define vertexShaderPath "/Users/willl/MyClipmap/vertex.txt"
 #define fragmentShaderPath "/Users/willl/MyClipmap/fragment.txt"
@@ -34,4 +36,5 @@
 #define mypointsPath "/Users/willl/MyClipmap/mypoints.txt"
 #define tiffFilePath "/Users/willl/MyClipmap/ASTGTM2_N00E006_dem.tif"
 #define testOutput "/Users/willl/MyClipmap/testOutput.txt"
+#define currentPath "/Users/willl/MyClipmap/"
 #endif

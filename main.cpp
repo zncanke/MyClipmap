@@ -33,8 +33,12 @@ GLfloat tColor[][4] = {
 
 vector<GLfloat> vertices;
 
+#define texNum 4
+
 Shader shader;
-GLuint texHeightMap;
+GLuint texHeightMap, tex[texNum];
+
+const string texName[] = { "mud", "grass", "stone", "ice", "detail" };
 
 void init();
 void drawFrame();
@@ -44,6 +48,7 @@ void drawGrid();
 void buildGrid();
 void setUniform4f(const char* name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
 void setUniformi(const char* name, GLint val);
+GLuint genTexture(int width, int height, int type0, int type1, int type2, unsigned char * data);
 
 void testProc() {
     mat4 mat0, mat1;
@@ -127,18 +132,16 @@ void init() {
 	currentPos.x = geotiffFile.getHeight() / 2;
 	currentPos.y = geotiffFile.getWidth() / 2;
 
-    glGenTextures(1, &texHeightMap);
-    glBindTexture(GL_TEXTURE_2D, texHeightMap);
+	texHeightMap = genTexture(geotiffFile.getWidth(), geotiffFile.getHeight(), GL_LUMINANCE, 
+		GL_LUMINANCE, GL_FLOAT, (unsigned char*)geotiffFile.getHeightMap());
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, geotiffFile.getWidth(), geotiffFile.getHeight(),
-                 0, GL_LUMINANCE, GL_FLOAT, geotiffFile.getHeightMap());
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, 0);
+	for (int i = 0; i < texNum; i++) {
+		string filePath = currentPath + texName[i] + ".jpg";
+		int w, h;
+		unsigned char* image = SOIL_load_image(filePath.c_str(), &w, &h, 0, SOIL_LOAD_RGB);
+		tex[i] = genTexture(w, h, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE, image);
+		SOIL_free_image_data(image);
+	}
 
     buildGrid();
 
@@ -150,6 +153,24 @@ void init() {
 	shader.attach(GL_VERTEX_SHADER, vertexShaderPath);
 	shader.attach(GL_FRAGMENT_SHADER, fragmentShaderPath);
 	shader.link();
+}
+
+GLuint genTexture(int width, int height, int type0, int type1, int type2, unsigned char * data) {
+	GLuint ret;
+
+	glGenTextures(1, &ret);
+	glBindTexture(GL_TEXTURE_2D, ret);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, type0, width, height, 0, type1, type2, data);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	return ret;
 }
 
 void buildGrid() {
@@ -198,13 +219,19 @@ void drawFrame() {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-	glRotatef(30.0f, 1, 0, 0);
+	//glRotatef(30.0f, 1, 0, 0);
     glRotatef(viewAngle, 0, 1, 0);
     glTranslatef(0, -viewPos[1], 0);
 
     glEnable(GL_TEXTURE_2D);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texHeightMap);
+
+	for (int i = 0; i < texNum; i++) {
+		//glEnable(GL_TEXTURE_2D);
+		glActiveTexture(GL_TEXTURE1 + i);
+		glBindTexture(GL_TEXTURE_2D, tex[i]);
+	}
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -240,8 +267,11 @@ bool frustumCull(vec4 scale, vec4 offset) {
 
 void drawGrid() {
 	setUniformi("texHeightMap", 0);
+	for (int i = 0; i < texNum; i++)
+		setUniformi(texName[i].c_str(), i + 1);
+	setUniform4f("seg", geotiffFile.getMaxheight() / 5.0f, 0, 0, 0);
 	setUniform4f("currentPos", currentPos.x / geotiffFile.getHeight(), 0, currentPos.y / geotiffFile.getWidth(), 0);
-	setUniform4f("tColor", tColor[6][0], tColor[6][1], tColor[6][2], 1);
+	//setUniform4f("tColor", tColor[6][0], tColor[6][1], tColor[6][2], 1);
     float ratio = 1;
     for (int l = 0; l < LEVEL; l++) {
 		vec4 scale(ratio, 1, ratio, 1);
@@ -258,9 +288,9 @@ void drawGrid() {
 					c++;
 					continue;
 				}
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, vertices.size());
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, vertices.size() / 3);
             }
-		printf("%d\n", c);
+		//printf("%d\n", c);
         scale *= 0.5;
     }
 }

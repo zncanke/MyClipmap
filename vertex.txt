@@ -4,16 +4,21 @@ uniform vec4 scale;
 uniform vec4 offset;
 uniform vec4 currentPos;
 
+varying vec3 orig;
+
 void main(void) {
+	orig = gl_Vertex.xyz;
 	vec4 pos = scale * (offset + vec4(gl_Vertex.xyz, 1.0));
 	vec3 tpos = pos.xyz;
 	tpos = tpos / 2.0;
     tpos = tpos + 0.5;
 	tpos /= 18;
 	tpos += currentPos.xyz;
+	//orig.xz = tpos.xz;
 	if (tpos.x < 0 || tpos.x >= 1 || tpos.z < 0 || tpos.z >= 1)
 		pos.y = 0;
 	else
 		pos.y = texture2D(texHeightMap, tpos.xz).x;
+	orig.y = pos.y;
 	gl_Position = gl_ModelViewProjectionMatrix * pos;
 }

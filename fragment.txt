@@ -1,4 +1,33 @@
-uniform vec4 tColor;
+uniform sampler2D mud;
+uniform sampler2D grass;
+uniform sampler2D stone;
+uniform sampler2D ice;
+uniform sampler2D detail;
+
+uniform vec4 seg;
+//uniform vec4 tColor;
+
+varying vec3 orig;
+
 void main(void) {
-	gl_FragColor = tColor;
+	//gl_FragColor = tColor;
+	for (int i = 0; i < 5; i++) {
+		if (orig.y >= i * seg.x && orig.y <= i * seg.x + seg.x) {
+			float tmp = orig.y - i * seg.x;
+			if (i == 0) {
+				gl_FragColor = texture(mud, orig.xz);
+				//gl_FragColor = vec4(1, 0, 0, 1);
+			} else  if (i == 1) {
+				gl_FragColor = mix(texture(mud, orig.xz), texture(grass, orig.xz), tmp / seg.x);
+			} else if (i == 2) {
+				gl_FragColor = mix(texture(grass, orig.xz), texture(stone, orig.xz), tmp / seg.x);
+			} else if (i == 3){
+				gl_FragColor = mix(texture(stone, orig.xz), texture(ice, orig.xz), tmp / seg.x);
+			} else if (i == 4) {
+				gl_FragColor = texture(ice, orig.xz);
+			}
+			break;
+		}
+	}
+	//gl_FragColor = mix(gl_FragColor, texture(detail, orig.xz), 0.2);
 }
