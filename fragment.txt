@@ -5,12 +5,11 @@ uniform sampler2D ice;
 uniform sampler2D detail;
 
 uniform vec4 seg;
-//uniform vec4 tColor;
+uniform vec4 tColor;
 
 varying vec3 orig;
 
 void main(void) {
-	//gl_FragColor = tColor;
 	for (int i = 0; i < 5; i++) {
 		if (orig.y >= i * seg.x && orig.y <= i * seg.x + seg.x) {
 			float tmp = orig.y - i * seg.x;
@@ -30,4 +29,5 @@ void main(void) {
 		}
 	}
 	//gl_FragColor = mix(gl_FragColor, texture(detail, orig.xz), 0.2);
+	//gl_FragColor = tColor;
 }

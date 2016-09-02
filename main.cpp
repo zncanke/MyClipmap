@@ -6,7 +6,7 @@ using namespace std;
 using namespace glm;
 
 const int WIDTH = 1024, HEIGHT = 512;
-const int GRID = 128;
+const int GRID = 32;
 const int LEVEL = 3;
 
 RawFile rawFile;
@@ -22,8 +22,8 @@ Point currentPos;
 GLuint vbo;
 
 GLfloat tColor[][4] = {
-        1, 0, 0, 1, //read
-        0, 1, 0, 1, //green
+		1, 0, 0, 1, //red
+		0, 1, 0, 1, //green
         0, 0, 1, 1, //dark blue
         1, 0, 1, 1, //purple
         1, 1, 0, 1, //yellow
@@ -161,8 +161,8 @@ GLuint genTexture(int width, int height, int type0, int type1, int type2, unsign
 	glGenTextures(1, &ret);
 	glBindTexture(GL_TEXTURE_2D, ret);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -177,33 +177,77 @@ void buildGrid() {
     //freopen(mypointsPath, "w", stdout);
     vertices.clear();
     for (int j = 0; j < GRID+1; j++)
-        for (int i = 0; i < GRID+2; i++) {
+		for (int i = 0; i < GRID + 2; i++) {
 
-            for (int k = 0; k < ((i == 0) ? 2 : 1); k++) {
-                vertices.push_back((float)i / GRID);
-                vertices.push_back(0);
-                vertices.push_back((float)j / GRID);
-//                printf("%d, %d, %d\n", i, 0, j);
-            }
+			for (int k = 0; k < ((i == 0) ? 2 : 1); k++) {
+				//			for (int k = 0; k < 1; k++) {
+				vertices.push_back((float)i / GRID);
+				vertices.push_back(0);
+				vertices.push_back((float)j / GRID);
+				//                printf("%d, %d, %d\n", i, 0, j);
+			}
 
-            j++;
-            for (int k = 0; k < ((i == GRID + 1) ? 2 : 1); k++) {
-                vertices.push_back(float(i) / GRID);
-                vertices.push_back(0);
-                vertices.push_back(float(j) / GRID);
-//                printf("%d, %d, %d\n", i, 0, j);
-            }
-            j--;
-        }
+			j++;
+			for (int k = 0; k < ((i == GRID + 1) ? 2 : 1); k++) {
+				//		for (int k = 0; k < 1; k++) {
+				vertices.push_back((float)i / GRID);
+				vertices.push_back(0);
+				vertices.push_back((float)j / GRID);
+				//                printf("%d, %d, %d\n", i, 0, j);
+			}
+			j--;
+		}
+	for (int i = 0; i < 4; i++) {
+		int tmp;
+		tmp = (i < 2) ? 1 : 0;
+		for (int j = 0; j < 2; j++) {
+			vertices.push_back((float)(GRID + tmp) / GRID);
+			vertices.push_back(0);
+			vertices.push_back((float)GRID / GRID);
+		}
+	}
+
+	//T-junction removal
+	float x, y;
+	x = y = GRID;
+	for (int i = 0; i < GRID * 2; x -= 0.5, i++) {
+		vertices.push_back((float)x / GRID);
+		vertices.push_back(0);
+		vertices.push_back((float)y / GRID);
+	}
+	vertices.push_back((float)x / GRID);
+	vertices.push_back(0);
+	vertices.push_back((float)y / GRID);
+	for (int i = 0; i < GRID * 2; y -= 0.5, i++) {
+		vertices.push_back((float)x / GRID);
+		vertices.push_back(0);
+		vertices.push_back((float)y / GRID);
+	}
+	vertices.push_back((float)x / GRID);
+	vertices.push_back(0);
+	vertices.push_back((float)y / GRID);
+	for (int i = 0; i < GRID * 2; x += 0.5, i++) {
+		vertices.push_back((float)x / GRID);
+		vertices.push_back(0);
+		vertices.push_back((float)y / GRID);
+	}
+	vertices.push_back((float)x / GRID);
+	vertices.push_back(0);
+	vertices.push_back((float)y / GRID);
+	for (int i = 0; i < GRID * 2; y += 0.5, i++) {
+		vertices.push_back((float)x / GRID);
+		vertices.push_back(0);
+		vertices.push_back((float)y / GRID);
+	}
 //    freopen("CON", "w", stdout);
 }
 
 void drawFrame() {
     glClearDepth(1.0f);
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClearColor(0.22f, 0.46f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//    glEnable(GL_CULL_FACE);
-//    glCullFace(GL_FRONT);
+  //  glEnable(GL_CULL_FACE);
+   // glCullFace(GL_FRONT);
     glEnable(GL_DEPTH_TEST);
 //    glDepthFunc(GL_LESS);
 
@@ -291,7 +335,7 @@ void drawGrid() {
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, vertices.size() / 3);
             }
 		//printf("%d\n", c);
-        scale *= 0.5;
+        ratio *= 0.5;
     }
 }
 
