@@ -2,6 +2,7 @@
 #include "RawFile.h"
 #include "shader.h"
 #include "GeotiffFile.h"
+#include "skybox.h"
 using namespace std;
 using namespace glm;
 
@@ -37,6 +38,8 @@ vector<GLfloat> vertices;
 
 Shader shader;
 GLuint texHeightMap, tex[texNum];
+
+Skybox skybox;
 
 const string texName[] = { "mud", "grass", "stone", "ice", "detail" };
 
@@ -153,6 +156,8 @@ void init() {
 	shader.attach(GL_VERTEX_SHADER, vertexShaderPath);
 	shader.attach(GL_FRAGMENT_SHADER, fragmentShaderPath);
 	shader.link();
+
+	skybox.init();
 }
 
 GLuint genTexture(int width, int height, int type0, int type1, int type2, unsigned char * data) {
@@ -251,6 +256,7 @@ void drawFrame() {
     glEnable(GL_DEPTH_TEST);
 //    glDepthFunc(GL_LESS);
 
+
 	static float viewPos[] = { 0, 0.5f, 0 };
 	static float viewAngle;
     viewAngle = cursor.x / (float)4.0;
@@ -265,7 +271,11 @@ void drawFrame() {
 
 	//glRotatef(30.0f, 1, 0, 0);
     glRotatef(viewAngle, 0, 1, 0);
-    glTranslatef(0, -viewPos[1], 0);
+
+	glTranslatef(0, viewPos[1], 0);
+	skybox.render();
+
+    glTranslatef(0, -2 * viewPos[1], 0);
 
     glEnable(GL_TEXTURE_2D);
     glActiveTexture(GL_TEXTURE0);
