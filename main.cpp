@@ -53,33 +53,6 @@ void setUniform4f(const char* name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat 
 void setUniformi(const char* name, GLint val);
 GLuint genTexture(int width, int height, int type0, int type1, int type2, unsigned char * data);
 
-void testProc() {
-    mat4 mat0, mat1;
-	mat0 = translate(mat0, vec3(0, -0.3f, 0));
-	//vec4 tv(1, 1, 1, 1);
-	//tv = mat0 * tv;
-	mat1 = perspective(90.0f, 2.0f, 0.01f, 100.0f);
-	mat0 = mat1 * mat0;
-
-    freopen(testOutput, "w", stdout);
-    for (int i = 0; i < vertices.size(); i += 3) {
-        vec4 pos(vertices[i], vertices[i+1], vertices[i+2], 1.0);
-        vec4 offset(-1, 0, -1, 0);
-        pos += offset;
-        vec3 tpos(pos.x, pos.y, pos.z);
-        tpos /= 2;
-        tpos += 0.5;
-        int x = (int)(tpos.x * 3601);
-        int z = (int)(tpos.z * 3601);
-		if (x == 0 && z == 1800) {
-			x = x;
-		}
-		pos = mat0 * pos;
-		pos.y = geotiffFile.getHeightMap()[x * geotiffFile.getWidth() + z];
-        printf("%d %d : %.2f\n", x, z, pos.y / pos.w);
-    }
-    freopen("CON", "w", stdout);
-}
 
 int main() {
     glfwInit();
@@ -108,8 +81,6 @@ int main() {
 
     init();
 
-    //testProc();
-
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         drawFrame();
@@ -122,14 +93,6 @@ int main() {
 }
 
 void init() {
-//    rawFile.loadRawFile(rawFilePath);
-//    freopen(mypointsPath, "w", stdout);
-//    for (int i = 0; i < DATASIZE; i++)
-//        for (int j = 0; j < DATASIZE; j++)
-//            printf("(%d, %d):%d\n", i, j, rawFile.getRaw(i, j));
-
-//    rawFile.generateHeightMap();
-
     geotiffFile.loadTiffFile(tiffFilePath);
 
 	currentPos.x = geotiffFile.getHeight() / 2;
@@ -274,6 +237,7 @@ void drawFrame() {
 
 	glTranslatef(0, viewPos[1], 0);
 	skybox.render();
+	//glTranslatef(0, -viewPos[1], 0);
 
     glTranslatef(0, -2 * viewPos[1], 0);
 
