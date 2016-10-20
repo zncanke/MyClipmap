@@ -28,6 +28,6 @@ void main(void) {
 			break;
 		}
 	}
-	//gl_FragColor = mix(gl_FragColor, texture(detail, orig.xz), 0.2);
+	gl_FragColor = mix(gl_FragColor, texture(detail, orig.xz), 0.2);
 	//gl_FragColor = tColor;
 }

@@ -2,7 +2,7 @@
 // Created by zhengchuankun on 8/31/16.
 //
 
-#include "GeotiffFile.h"
+#include "geotiffFile.h"
 
 void GeotiffFile::loadTiffFile(const char *filePath) {
     TIFF *tif = XTIFFOpen(filePath, "r");
@@ -68,7 +68,8 @@ void GeotiffFile::loadTiffFile(const char *filePath) {
 	//freopen("CON", "w", stdout);
     for (int i = 0; i < tot; i++) {
 		//printf("%d\n", buffer[i]);
-        heightMap[i] = (float)buffer[i] / 6000.0;
+        //heightMap[i] = (float)buffer[i] / 6000.0;
+		heightMap[i] = (float)buffer[i] / 10.0;
 		maxheight = maxheight < heightMap[i] ? heightMap[i] : maxheight;
         /*if (heightMap[i] > 1) {
             count++;

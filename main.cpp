@@ -1,16 +1,14 @@
 #include "global.h"
-#include "RawFile.h"
 #include "shader.h"
-#include "GeotiffFile.h"
+#include "geotiffFile.h"
 #include "skybox.h"
 using namespace std;
 using namespace glm;
 
-const int WIDTH = 1024, HEIGHT = 512;
+const int WIDTH = 1024, HEIGHT = 720;
 const int GRID = 32;
-const int LEVEL = 3;
+const int LEVEL = 4;
 
-RawFile rawFile;
 GeotiffFile geotiffFile;
 
 struct Point {
@@ -93,8 +91,10 @@ int main() {
 }
 
 void init() {
+	//use geotiff library functions to load geotiff format file
     geotiffFile.loadTiffFile(tiffFilePath);
 
+	//initialize the position
 	currentPos.x = geotiffFile.getHeight() / 2;
 	currentPos.y = geotiffFile.getWidth() / 2;
 
@@ -109,6 +109,7 @@ void init() {
 		SOIL_free_image_data(image);
 	}
 
+	//generate the points link in subarea
     buildGrid();
 
 	glGenBuffers(1, &vbo);
@@ -210,6 +211,8 @@ void buildGrid() {
 //    freopen("CON", "w", stdout);
 }
 
+int fov = 90;
+
 void drawFrame() {
     glClearDepth(1.0f);
     glClearColor(0.22f, 0.46f, 1.0f, 1.0f);
@@ -220,20 +223,22 @@ void drawFrame() {
 //    glDepthFunc(GL_LESS);
 
 
-	static float viewPos[] = { 0, 0.5f, 0 };
+	static float viewPos[] = { 0, 0.5, 0 };
 	static float viewAngle;
     viewAngle = cursor.x / (float)4.0;
 //    printf("%.2f\n", viewAngle);
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-    gluPerspective(90.0f, (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.01f, 100.0f);
+    gluPerspective(fov, (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.01f, 100.0f);
+	//gluPerspective(fov, (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.25f, 5000.0f);
+	glRotatef(viewAngle, 0, 1, 0);
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
 	//glRotatef(30.0f, 1, 0, 0);
-    glRotatef(viewAngle, 0, 1, 0);
+    
 
 	glTranslatef(0, viewPos[1], 0);
 	skybox.render();
@@ -290,7 +295,8 @@ void drawGrid() {
 	setUniform4f("seg", geotiffFile.getMaxheight() / 5.0f, 0, 0, 0);
 	setUniform4f("currentPos", currentPos.x / geotiffFile.getHeight(), 0, currentPos.y / geotiffFile.getWidth(), 0);
 	//setUniform4f("tColor", tColor[6][0], tColor[6][1], tColor[6][2], 1);
-    float ratio = 1;
+    float ratio = 2;
+	setUniform4f("maxScale", ratio, 1, ratio, 1);
     for (int l = 0; l < LEVEL; l++) {
 		vec4 scale(ratio, 1, ratio, 1);
         setUniform4f("scale", scale.x, 1, scale.z, 1);
@@ -331,6 +337,12 @@ void key_callback(GLFWwindow *windows, int key, int scancode, int action, int mo
 	if (key == GLFW_KEY_A && action == GLFW_PRESS) {
 		currentPos.y = (currentPos.y - delta < 0) ?
 			0 : currentPos.y - delta;
+	}
+	if (key == GLFW_KEY_PAGE_DOWN && action == GLFW_PRESS) {
+		fov = (fov > 10) ? fov - 1 : fov;
+	}
+	if (key == GLFW_KEY_PAGE_UP && action == GLFW_PRESS) {
+		fov = (fov < 180) ? fov + 1 : fov;
 	}
 	if (action == GLFW_PRESS)
 		printf("Current Position: %.0f %.0f\n", currentPos.x, currentPos.y);
