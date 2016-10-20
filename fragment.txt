@@ -1,3 +1,4 @@
+
 uniform sampler2D mud;
 uniform sampler2D grass;
 uniform sampler2D stone;
@@ -10,24 +11,24 @@ uniform vec4 tColor;
 varying vec3 orig;
 
 void main(void) {
+    float tmp;
 	for (int i = 0; i < 5; i++) {
-		if (orig.y >= i * seg.x && orig.y <= i * seg.x + seg.x) {
-			float tmp = orig.y - i * seg.x;
+		if (orig.y >= float(i) * seg.x && orig.y <= float(i) * seg.x + seg.x) {
+			tmp = orig.y - float(i) * seg.x;
 			if (i == 0) {
-				gl_FragColor = texture(mud, orig.xz);
-				//gl_FragColor = vec4(1, 0, 0, 1);
+				gl_FragColor = texture2D(mud, orig.xz);
 			} else  if (i == 1) {
-				gl_FragColor = mix(texture(mud, orig.xz), texture(grass, orig.xz), tmp / seg.x);
+				gl_FragColor = mix(texture2D(mud, orig.xz), texture2D(grass, orig.xz), tmp / seg.x);
 			} else if (i == 2) {
-				gl_FragColor = mix(texture(grass, orig.xz), texture(stone, orig.xz), tmp / seg.x);
+				gl_FragColor = mix(texture2D(grass, orig.xz), texture2D(stone, orig.xz), tmp / seg.x);
 			} else if (i == 3){
-				gl_FragColor = mix(texture(stone, orig.xz), texture(ice, orig.xz), tmp / seg.x);
+				gl_FragColor = mix(texture2D(stone, orig.xz), texture2D(ice, orig.xz), tmp / seg.x);
 			} else if (i == 4) {
-				gl_FragColor = texture(ice, orig.xz);
+				gl_FragColor = texture2D(ice, orig.xz);
 			}
 			break;
 		}
 	}
-	gl_FragColor = mix(gl_FragColor, texture(detail, orig.xz), 0.2);
+	gl_FragColor = mix(gl_FragColor, texture2D(detail, orig.xz), 0.2);
 	//gl_FragColor = tColor;
 }

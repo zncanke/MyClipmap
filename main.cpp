@@ -54,7 +54,7 @@ GLuint genTexture(int width, int height, int type0, int type1, int type2, unsign
 
 int main() {
     glfwInit();
-    glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
     GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Geometry Clipmap", nullptr, nullptr);
     if (window == nullptr) {
@@ -249,7 +249,7 @@ void drawFrame() {
     glEnable(GL_TEXTURE_2D);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texHeightMap);
-
+0
 	for (int i = 0; i < texNum; i++) {
 		//glEnable(GL_TEXTURE_2D);
 		glActiveTexture(GL_TEXTURE1 + i);

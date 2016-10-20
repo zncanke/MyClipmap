@@ -1,3 +1,4 @@
+
 uniform sampler2D texHeightMap;
 
 uniform vec4 maxScale;
@@ -14,11 +15,11 @@ void main(void) {
 	tpos = tpos / maxScale;
 	tpos = tpos / vec4(4, 1, 4, 1);
     tpos = tpos + vec4(0.5, 0, 0.5, 0);
+    orig.xz = tpos.xz;
 	tpos /= vec4(180, 1, 180, 1);
 	tpos += currentPos;
-	//orig.xz = tpos.xz;
-	if (tpos.x < 0 || tpos.x >= 1 || tpos.z < 0 || tpos.z >= 1)
-		pos.y = 0;
+	if (tpos.x < 0.0 || tpos.x >= 1.0 || tpos.z < 0.0 || tpos.z >= 1.0)
+		pos.y = 0.0;
 	else
 		pos.y = texture2D(texHeightMap, tpos.xz).x;
 	orig.y = pos.y;
