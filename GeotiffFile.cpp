@@ -69,7 +69,7 @@ void GeotiffFile::loadTiffFile(const char *filePath) {
     for (int i = 0; i < tot; i++) {
 		//printf("%d\n", buffer[i]);
         //heightMap[i] = (float)buffer[i] / 6000.0;
-		heightMap[i] = (float)buffer[i] / 10.0;
+		heightMap[i] = (float)buffer[i];
 		maxheight = maxheight < heightMap[i] ? heightMap[i] : maxheight;
         /*if (heightMap[i] > 1) {
             count++;

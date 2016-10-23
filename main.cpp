@@ -2,21 +2,15 @@
 #include "shader.h"
 #include "geotiffFile.h"
 #include "skybox.h"
+#include "camera.h"
 using namespace std;
 using namespace glm;
 
 const int WIDTH = 1024, HEIGHT = 720;
-const int GRID = 32;
-const int LEVEL = 4;
+const int GRID = 64;
+const int LEVEL = 10;
 
 GeotiffFile geotiffFile;
-
-struct Point {
-    float x, y;
-};
-
-Point cursor;
-Point currentPos;
 
 GLuint vbo;
 
@@ -38,6 +32,8 @@ Shader shader;
 GLuint texHeightMap, tex[texNum];
 
 Skybox skybox;
+Camera camera;
+bool keys[1024];
 
 const string texName[] = { "mud", "grass", "stone", "ice", "detail" };
 
@@ -49,7 +45,8 @@ void drawGrid();
 void buildGrid();
 void setUniform4f(const char* name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
 void setUniformi(const char* name, GLint val);
-GLuint genTexture(int width, int height, int type0, int type1, int type2, unsigned char * data);
+GLuint genTexture(int width, int height, int type0, int type1, int type2, unsigned char * data, bool mipmap);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 
 int main() {
@@ -66,6 +63,7 @@ int main() {
     glfwMakeContextCurrent(window);
     glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetKeyCallback(window, key_callback);
+	glfwSetScrollCallback(window, scroll_callback);
 
     glewExperimental = (GLboolean)true;
     if (glewInit() != GLEW_OK) {
@@ -77,10 +75,22 @@ int main() {
     glfwGetFramebufferSize(window, &width, &height);
     glViewport(0, 0, width, height);
 
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
     init();
+
+	width = geotiffFile.getWidth();
+	height = geotiffFile.getHeight();
+	GLfloat lastTime = 0;
+	GLfloat currentTime = glfwGetTime();
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
+		currentTime = glfwGetTime();
+		camera.revise();
+		camera.move(keys, currentTime - lastTime, width, height);
+		//printf("fps: %d\n", int(1.0 / (currentTime - lastTime)));
+		lastTime = currentTime;
         drawFrame();
         glfwSwapBuffers(window);
     }
@@ -91,21 +101,27 @@ int main() {
 }
 
 void init() {
+	//clear all keys bit
+	memset(keys, 0, sizeof(keys));
+
 	//use geotiff library functions to load geotiff format file
     geotiffFile.loadTiffFile(tiffFilePath);
 
 	//initialize the position
-	currentPos.x = geotiffFile.getHeight() / 2;
-	currentPos.y = geotiffFile.getWidth() / 2;
+	camera.setPos(1635, 300, 2348);
+	//camera.setPos(geotiffFile.getWidth() / 2, geotiffFile.getMaxheight() / 2, geotiffFile.getHeight() / 2);
 
-	texHeightMap = genTexture(geotiffFile.getWidth(), geotiffFile.getHeight(), GL_LUMINANCE, 
-		GL_LUMINANCE, GL_FLOAT, (unsigned char*)geotiffFile.getHeightMap());
+	texHeightMap = genTexture(geotiffFile.getWidth(), geotiffFile.getHeight(), GL_R32F,
+		GL_RED, GL_FLOAT, (unsigned char*)geotiffFile.getHeightMap(), true);
+
+	/*texHeightMap = genTexture(geotiffFile.getWidth(), geotiffFile.getHeight(), GL_LUMINANCE,
+		GL_LUMINANCE, GL_FLOAT, (unsigned char*)geotiffFile.getHeightMap(), true);*/
 
 	for (int i = 0; i < texNum; i++) {
 		string filePath = currentPath + texName[i] + ".jpg";
 		int w, h;
 		unsigned char* image = SOIL_load_image(filePath.c_str(), &w, &h, 0, SOIL_LOAD_RGB);
-		tex[i] = genTexture(w, h, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE, image);
+		tex[i] = genTexture(w, h, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE, image, true);
 		SOIL_free_image_data(image);
 	}
 
@@ -124,7 +140,7 @@ void init() {
 	skybox.init();
 }
 
-GLuint genTexture(int width, int height, int type0, int type1, int type2, unsigned char * data) {
+GLuint genTexture(int width, int height, int type0, int type1, int type2, unsigned char * data, bool mipmap) {
 	GLuint ret;
 
 	glGenTextures(1, &ret);
@@ -132,11 +148,18 @@ GLuint genTexture(int width, int height, int type0, int type1, int type2, unsign
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	if (mipmap) {
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	}
+	else {
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	}
 
 	glTexImage2D(GL_TEXTURE_2D, 0, type0, width, height, 0, type1, type2, data);
-	glGenerateMipmap(GL_TEXTURE_2D);
+	if (mipmap)
+		glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	return ret;
@@ -211,7 +234,7 @@ void buildGrid() {
 //    freopen("CON", "w", stdout);
 }
 
-int fov = 90;
+float fov = 90;
 
 void drawFrame() {
     glClearDepth(1.0f);
@@ -224,34 +247,32 @@ void drawFrame() {
 
 
 	static float viewPos[] = { 0, 0.5, 0 };
-	static float viewAngle;
-    viewAngle = cursor.x / (float)4.0;
-//    printf("%.2f\n", viewAngle);
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-    gluPerspective(fov, (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.01f, 100.0f);
-	//gluPerspective(fov, (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.25f, 5000.0f);
-	glRotatef(viewAngle, 0, 1, 0);
+    gluPerspective(fov, (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.25f, 10000.0f);
+
+	vec3 dir = camera.getDir();
+	vec3 up = camera.getUp();
+	vec3 hor = camera.getHorizontal();
+	vec3 pos = camera.getPos();
+	//glRotatef(camera.getPitch(), hor.x, hor.y, hor.z);
+	//glRotatef(camera.getYaw(), up.x, up.y, up.z);
+	gluLookAt(0, pos.y, 0, dir.x, pos.y + dir.y, dir.z, up.x, up.y, up.z);
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-	//glRotatef(30.0f, 1, 0, 0);
-    
-
-	glTranslatef(0, viewPos[1], 0);
+	glTranslatef(0, pos.y, 0);
 	skybox.render();
-	//glTranslatef(0, -viewPos[1], 0);
-
-    glTranslatef(0, -2 * viewPos[1], 0);
+	glTranslatef(0, -3 * pos.y, 0);
 
     glEnable(GL_TEXTURE_2D);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texHeightMap);
-0
+
 	for (int i = 0; i < texNum; i++) {
-		//glEnable(GL_TEXTURE_2D);
+		glEnable(GL_TEXTURE_2D);
 		glActiveTexture(GL_TEXTURE1 + i);
 		glBindTexture(GL_TEXTURE_2D, tex[i]);
 	}
@@ -293,9 +314,9 @@ void drawGrid() {
 	for (int i = 0; i < texNum; i++)
 		setUniformi(texName[i].c_str(), i + 1);
 	setUniform4f("seg", geotiffFile.getMaxheight() / 5.0f, 0, 0, 0);
-	setUniform4f("currentPos", currentPos.x / geotiffFile.getHeight(), 0, currentPos.y / geotiffFile.getWidth(), 0);
+	setUniform4f("currentPos", camera.getPos().x / geotiffFile.getWidth(), 0, camera.getPos().z / geotiffFile.getHeight(), 0);
 	//setUniform4f("tColor", tColor[6][0], tColor[6][1], tColor[6][2], 1);
-    float ratio = 2;
+    float ratio = 4096;
 	setUniform4f("maxScale", ratio, 1, ratio, 1);
     for (int l = 0; l < LEVEL; l++) {
 		vec4 scale(ratio, 1, ratio, 1);
@@ -319,39 +340,36 @@ void drawGrid() {
     }
 }
 
-const float delta = 10.0f;
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	int lb = 1, hb = 90;
+	if (fov >= lb && fov <= hb)
+		fov -= yoffset;
+	if (fov <= lb)
+		fov = lb;
+	if (fov >= hb)
+		fov = hb;
+}
 
 void key_callback(GLFWwindow *windows, int key, int scancode, int action, int mode) {
-	if (key == GLFW_KEY_W && action == GLFW_PRESS) {
-		currentPos.x = (currentPos.x + delta >= geotiffFile.getHeight()) ?
-			geotiffFile.getHeight() - 1 : currentPos.x + delta;
-	}
-	if (key == GLFW_KEY_S && action == GLFW_PRESS) {
-		currentPos.x = (currentPos.x - delta < 0) ?
-			0 : currentPos.x - delta;
-	}
-	if (key == GLFW_KEY_D && action == GLFW_PRESS) {
-		currentPos.y = (currentPos.y + delta >= geotiffFile.getWidth()) ?
-			geotiffFile.getWidth() - 1 : currentPos.y + delta;
-	}
-	if (key == GLFW_KEY_A && action == GLFW_PRESS) {
-		currentPos.y = (currentPos.y - delta < 0) ?
-			0 : currentPos.y - delta;
-	}
-	if (key == GLFW_KEY_PAGE_DOWN && action == GLFW_PRESS) {
-		fov = (fov > 10) ? fov - 1 : fov;
-	}
-	if (key == GLFW_KEY_PAGE_UP && action == GLFW_PRESS) {
-		fov = (fov < 180) ? fov + 1 : fov;
-	}
 	if (action == GLFW_PRESS)
-		printf("Current Position: %.0f %.0f\n", currentPos.x, currentPos.y);
+		keys[key] = true;
+	else
+	if (action == GLFW_RELEASE)
+		keys[key] = false;
+
+	if (keys[GLFW_KEY_1])
+		printf("%.2f %.2f %.2f\n", camera.getDir().x, camera.getDir().y, camera.getDir().z);
+
+	if (keys[GLFW_KEY_ESCAPE])
+		exit(0);
+	printf("Current Positon: %d %d\n", int(camera.getPos().x), int(camera.getPos().z));
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
-//    printf("enterMouseCallback: %.2lf %.2lf\n", xpos, ypos);
-    cursor.x = (float)xpos;
-    cursor.y = (float)ypos;
+	static double lastY = 0;
+	camera.rotate(xpos, ypos - lastY);
+	lastY = ypos;
 }
 
 void setUniform4f(const char* name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3) {
@@ -359,7 +377,7 @@ void setUniform4f(const char* name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat 
     if (loc == -1) {
         printf("Variable %s in shader not found\n", name);
     }
-    glUniform4f(loc, v0, v1, v2, v3);
+    glUniform4f(loc, v0, v1, v2, v3); 
 }
 
 void setUniformi(const char* name, GLint val) {

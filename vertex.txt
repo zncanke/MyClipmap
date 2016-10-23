@@ -6,22 +6,23 @@ uniform vec4 scale;
 uniform vec4 offset;
 uniform vec4 currentPos;
 
+
 varying vec3 orig;
 
 void main(void) {
 	orig = gl_Vertex.xyz;
 	vec4 pos = scale * (offset + vec4(gl_Vertex.xyz, 1.0));
 	vec4 tpos = pos;
-	tpos = tpos / maxScale;
-	tpos = tpos / vec4(4, 1, 4, 1);
-    tpos = tpos + vec4(0.5, 0, 0.5, 0);
-    orig.xz = tpos.xz;
-	tpos /= vec4(180, 1, 180, 1);
+	tpos /= maxScale;
+	tpos /= vec4(4, 1, 4, 1);
+    tpos += vec4(0.5, 0, 0.5, 0);
+	tpos /= vec4(32, 1, 32, 1);
 	tpos += currentPos;
-	if (tpos.x < 0.0 || tpos.x >= 1.0 || tpos.z < 0.0 || tpos.z >= 1.0)
+	if (tpos.x < 0.0 || tpos.x >= 1.0 || tpos.z < 0.0 || tpos.z >= 1.0){
 		pos.y = 0.0;
-	else
-		pos.y = texture2D(texHeightMap, tpos.xz).x;
+	} else {
+		pos.y = texture2D(texHeightMap, tpos.xz).r;
+	}
 	orig.y = pos.y;
 	gl_Position = gl_ModelViewProjectionMatrix * pos;
 }
