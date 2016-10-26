@@ -146,6 +146,11 @@ GLuint genTexture(int width, int height, int type0, int type1, int type2, unsign
 	glGenTextures(1, &ret);
 	glBindTexture(GL_TEXTURE_2D, ret);
 
+	if (mipmap)
+		glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+	else
+		glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE);
+
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	if (mipmap) {

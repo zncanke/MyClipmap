@@ -28,3 +28,5 @@
 #define tiffFilePath "ASTGTM2_N00E006_dem.tif"
 #define testOutput "testOutput.txt"
 #define currentPath ""
+
+#define pageSize (128)
